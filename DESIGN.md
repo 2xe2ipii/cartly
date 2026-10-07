@@ -1,6 +1,6 @@
 # Cartly design
 
-**Status:** Phase 1 draft. This file records decisions as they are made; clear-bought behavior and final tradeoffs are still open.
+**Status:** Phase 1 draft. This file records decisions as they are made; final tradeoffs and equal-timestamp ordering are still open.
 
 ## Request flow
 
@@ -40,7 +40,12 @@ Each returned item contains only `id`, `name`, `quantity`, and `isBought`; the b
 
 Invalid names, quantities, or patch values receive HTTP 400 before a write. Missing items receive HTTP 404. Errors use `{"code":"VALIDATION_ERROR","message":"Quantity must be at least 1."}` as the response shape, with a specific code and readable message for each case. A database failure receives a 5xx response; the list screen shows an error with retry.
 
+## Clear bought decision (US-5)
+
+For `DELETE /items/bought`, query only `users/{userId}/items` where `isBought == true`. If the result is empty, return `204` without a write. Otherwise, submit the matching document references in a Firestore batched delete, then return `204`; no unbought document is selected. A large result must be split into batches within the same API request. Flutter then reloads the ordered list.
+
+This gives the shopper one action and avoids sending one delete request per item. **It does not satisfy the brief's literal one database round trip:** Standard Firestore needs a query to find matching document IDs before a batch can delete them, so the normal case uses a read and a commit. We are keeping the existing Standard database and the item-per-document model, and will mark this US-5 criterion as a limitation until the requirement is revised. [Firestore deletion guidance](https://firebase.google.com/docs/firestore/manage-data/delete-data) · [Batched writes](https://firebase.google.com/docs/firestore/manage-data/transactions)
+
 ## Decisions still to record
 
-- Clear-bought implementation and its database round-trip tradeoff.
 - Final tradeoffs and handling of items with equal `createdAt` values.
