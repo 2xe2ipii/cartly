@@ -96,15 +96,15 @@ export class ItemsService {
       .where('isBought', '==', true)
       .get();
 
-    // A Firestore batch supports up to 500 writes. Leave room for future writes.
-    const batchSize = 400;
-    for (let start = 0; start < snapshot.docs.length; start += batchSize) {
-      const batch = this.firestore.batch();
-      for (const doc of snapshot.docs.slice(start, start + batchSize)) {
-        batch.delete(doc.ref);
-      }
-      await batch.commit();
+    if (snapshot.docs.length === 0) {
+      return;
     }
+
+    const batch = this.firestore.batch();
+    for (const doc of snapshot.docs) {
+      batch.delete(doc.ref);
+    }
+    await batch.commit();
   }
 
   private itemFor(userId: string, itemId: string) {

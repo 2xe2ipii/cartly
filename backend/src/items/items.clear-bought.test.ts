@@ -60,14 +60,17 @@ test('clear bought is a no-op when the user has no bought items', async () => {
   assert.equal(state.commits, 0);
 });
 
-test('clear bought deletes only queried items in bounded batches', async () => {
-  const { service, state } = makeService(401);
+test('clear bought deletes all bought items in a batch', async () => {
+  const { service, state } = makeService(3);
 
   await service.clearBought('shopper_1');
 
   assert.deepEqual(state.filters, [['isBought', '==', true]]);
-  assert.deepEqual(state.batches.map((batch) => batch.length), [400, 1]);
-  assert.equal(state.commits, 2);
-  assert.deepEqual(state.batches[0][0], { id: 'bought-0' });
-  assert.deepEqual(state.batches[1][0], { id: 'bought-400' });
+  assert.equal(state.batches.length, 1);
+  assert.equal(state.commits, 1);
+  assert.deepEqual(state.batches[0], [
+    { id: 'bought-0' },
+    { id: 'bought-1' },
+    { id: 'bought-2' },
+  ]);
 });
