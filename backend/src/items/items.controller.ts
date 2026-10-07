@@ -36,6 +36,12 @@ export class ItemsController {
     return this.itemsService.setBought(userId, itemId, body);
   }
 
+  @Delete('bought')
+  @HttpCode(204)
+  clearBought(@UserId() userId: string): Promise<void> {
+    return this.itemsService.clearBought(userId);
+  }
+
   @Delete(':id')
   @HttpCode(204)
   remove(@UserId() userId: string, @Param('id') itemId: string): Promise<void> {

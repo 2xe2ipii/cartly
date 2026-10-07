@@ -91,6 +91,23 @@ export class ItemsService {
     }
   }
 
+  async clearBought(userId: string): Promise<void> {
+    const snapshot = await this.itemsFor(userId)
+      .where('isBought', '==', true)
+      .get();
+
+    // A Firestore batch supports up to 500 writes. Leave room for future writes.
+    const batchSize = 400;
+    for (let start = 0; start < snapshot.docs.length; start += batchSize) {
+      const batch = this.firestore.batch();
+      for (const doc of snapshot.docs.slice(start, start + batchSize)) {
+        // Do not delete an item that was marked unbought after the query.
+        batch.delete(doc.ref, { lastUpdateTime: doc.updateTime });
+      }
+      await batch.commit();
+    }
+  }
+
   private itemFor(userId: string, itemId: string) {
     if (!/^[A-Za-z0-9_-]{1,128}$/.test(itemId)) {
       throw new BadRequestException({
