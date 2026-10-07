@@ -4,7 +4,7 @@ A simple shopping list app: one user, one list. The mobile app will use Flutter,
 
 ## Project status
 
-The repository is being built in phases. The environment and credential template are prepared; the application is not runnable yet. The next phase is the Firestore model and API design in `DESIGN.md`, followed by backend and mobile implementation in separate commits.
+The architecture and index are documented in `DESIGN.md`. The NestJS backend now builds and starts, but it has no item routes yet; the mobile app is not built.
 
 | User story | Status |
 | --- | --- |
@@ -19,4 +19,15 @@ The repository is being built in phases. The environment and credential template
 
 Each developer needs their own Firebase project and service-account JSON key outside this repository. Copy `backend/.env.example` to `backend/.env`, then set the absolute key path and project ID. The local `.env` and JSON key must not be committed.
 
-Complete commands for running the API and mobile app will be added as those parts are built.
+To start the backend on a clean machine, install Node.js 20.19 or later, then run:
+
+```sh
+cd backend
+npm ci
+cp .env.example .env
+# Edit .env with your Firebase project ID and the absolute key path.
+npm run build
+npm run start
+```
+
+The server listens on `PORT` from `backend/.env` (3000 by default). A request to `/` currently returns 404 because item routes have not been added. Starting the server initializes Firebase Admin, but a live Firestore request has not yet been verified.
