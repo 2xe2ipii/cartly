@@ -1,4 +1,9 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { FieldValue, type Firestore } from 'firebase-admin/firestore';
 
 import { FIRESTORE } from '../firestore/firestore.module';
@@ -58,6 +63,55 @@ export class ItemsService {
       createdAt: FieldValue.serverTimestamp(),
     });
     return { id: ref.id };
+  }
+
+  async setBought(userId: string, itemId: string, body: unknown): Promise<void> {
+    const input = body && typeof body === 'object' && !Array.isArray(body)
+      ? (body as Record<string, unknown>)
+      : {};
+    if (typeof input.isBought !== 'boolean') {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'isBought must be true or false.',
+      });
+    }
+
+    try {
+      await this.itemFor(userId, itemId).update({ isBought: input.isBought });
+    } catch (error) {
+      this.rethrowMissingItem(error);
+    }
+  }
+
+  async remove(userId: string, itemId: string): Promise<void> {
+    try {
+      await this.itemFor(userId, itemId).delete({ exists: true });
+    } catch (error) {
+      this.rethrowMissingItem(error);
+    }
+  }
+
+  private itemFor(userId: string, itemId: string) {
+    if (!/^[A-Za-z0-9_-]{1,128}$/.test(itemId)) {
+      throw new BadRequestException({
+        code: 'INVALID_ITEM_ID',
+        message: 'Item ID is invalid.',
+      });
+    }
+    return this.itemsFor(userId).doc(itemId);
+  }
+
+  private rethrowMissingItem(error: unknown): never {
+    const code = error && typeof error === 'object' && 'code' in error
+      ? error.code
+      : undefined;
+    if (code === 5 || code === 9) {
+      throw new NotFoundException({
+        code: 'ITEM_NOT_FOUND',
+        message: 'Item not found.',
+      });
+    }
+    throw error;
   }
 
   private itemsFor(userId: string) {
