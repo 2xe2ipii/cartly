@@ -4,11 +4,11 @@ A simple shopping list app: one user, one list. The mobile app will use Flutter,
 
 ## Project status
 
-The architecture and index are documented in `DESIGN.md`. All five NestJS item routes are implemented. The mobile app is pending, and the configured Firebase project still needs the composite index before its ordered list route can work.
+The architecture and index are documented in `DESIGN.md`. All five NestJS item routes are implemented and verified against the configured Firebase project. The mobile app is pending.
 
 | User story | Status |
 | --- | --- |
-| US-1: See my list | Partly done: backend route and emulator ordering verified; live index and mobile screen pending |
+| US-1: See my list | Partly done: backend route and live database ordering verified; mobile screen pending |
 | US-2: Add an item | Partly done: backend route verified; mobile form pending |
 | US-3: Mark bought or unbought | Partly done: backend route verified; mobile toggle and reorder pending |
 | US-4: Delete an item | Partly done: backend route verified; mobile action pending |
@@ -38,4 +38,4 @@ Before an ordered list query can work in a new Firebase project, create the `ite
 firebase deploy --only firestore:indexes --project your-firebase-project-id
 ```
 
-The configured development project currently reports that this index is missing. Its service account can read and write item data but cannot create indexes. An account with index-management permission must create the index in the Firebase console or run the CLI command above. Until the index is ready, live `GET /items` returns a server error; the other routes passed an isolated live-project smoke test, and list ordering passed against the local Firestore emulator.
+The configured development project has this index in `READY` state. The live `GET /items` route and the other item routes passed an isolated API smoke test; temporary test documents were removed. For a new project, wait until Firestore reports the index as ready before testing the ordered list route.
