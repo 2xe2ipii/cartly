@@ -47,11 +47,17 @@ export class ItemsService {
         message: 'Name is required.',
       });
     }
-    if (typeof input.quantity !== 'number' ||
-        !Number.isInteger(input.quantity) || input.quantity < 1) {
+    if (name.length > 100) {
       throw new BadRequestException({
         code: 'VALIDATION_ERROR',
-        message: 'Quantity must be an integer of at least 1.',
+        message: 'Name must be 100 characters or less.',
+      });
+    }
+    if (typeof input.quantity !== 'number' ||
+        !Number.isInteger(input.quantity) || input.quantity < 1 || input.quantity > 9999) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Quantity must be an integer between 1 and 9999.',
       });
     }
 

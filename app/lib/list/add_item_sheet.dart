@@ -82,32 +82,48 @@ class _AddItemSheetState extends State<AddItemSheet> {
                   controller: _nameController,
                   autofocus: true,
                   enabled: !_saving,
+                  maxLength: 100,
+                  inputFormatters: [
+                    LengthLimitingTextInputFormatter(100),
+                  ],
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
                     labelText: 'Name',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Name is required.'
-                      : null,
+                  validator: (value) {
+                    final trimmed = value?.trim() ?? '';
+                    if (trimmed.isEmpty) return 'Name is required.';
+                    if (trimmed.length > 100) return 'Name must be 100 characters or less.';
+                    return null;
+                  },
                   onChanged: (_) => _clearServerError(),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _quantityController,
                   enabled: !_saving,
+                  maxLength: 4,
                   keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
+                  ],
                   textInputAction: TextInputAction.done,
                   decoration: const InputDecoration(
                     labelText: 'Quantity',
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
-                    final quantity = int.tryParse(value?.trim() ?? '');
-                    return quantity == null || quantity < 1
-                        ? 'Quantity must be at least 1.'
-                        : null;
+                    final trimmed = value?.trim() ?? '';
+                    final quantity = int.tryParse(trimmed);
+                    if (quantity == null || quantity < 1) {
+                      return 'Quantity must be at least 1.';
+                    }
+                    if (quantity > 9999) {
+                      return 'Quantity must be 9,999 or less.';
+                    }
+                    return null;
                   },
                   onChanged: (_) => _clearServerError(),
                   onFieldSubmitted: (_) => _save(),
