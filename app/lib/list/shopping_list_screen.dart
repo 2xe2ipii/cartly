@@ -38,6 +38,36 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       builder: (_) => AddItemSheet(onAdd: _controller.addItem),
     );
   }
+  Future<void> _confirmClearBought() async {
+    final count = _controller.boughtCount;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear bought items?'),
+        content: Text(
+          'Are you sure you want to remove $count bought item${count == 1 ? '' : 's'} from your list?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Clear items'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _runAction(_controller.clearBought);
+    }
+  }
 
   Future<void> _runAction(Future<void> Function() action) async {
     try {
@@ -60,7 +90,48 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My list'),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.shopping_bag_outlined,
+                size: 20,
+                color: Theme.of(context).colorScheme.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Cartly',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+                AnimatedBuilder(
+                  animation: _controller,
+                  builder: (context, _) {
+                    if (_controller.status != ShoppingListStatus.ready) {
+                      return const SizedBox.shrink();
+                    }
+                    final unbought = _controller.unboughtCount;
+                    return Text(
+                      unbought == 0
+                          ? 'All items in cart!'
+                          : '$unbought item${unbought == 1 ? '' : 's'} to buy',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
         actions: [
           AnimatedBuilder(
             animation: _controller,
@@ -173,7 +244,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                     onPressed:
                         _controller.isMutating || _controller.hasPendingDeletes
                         ? null
-                        : () => _runAction(_controller.clearBought),
+                        : _confirmClearBought,
                     icon: const Icon(Icons.delete_sweep_outlined),
                     label: const Text('Clear bought'),
                   ),
@@ -207,8 +278,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: bought
-                          ? const TextStyle(
+                          ? TextStyle(
                               decoration: TextDecoration.lineThrough,
+                              color: Theme.of(context).colorScheme.outline,
                             )
                           : null,
                     ),

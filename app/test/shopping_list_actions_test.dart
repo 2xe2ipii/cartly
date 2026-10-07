@@ -136,6 +136,8 @@ void main() {
 
     await tester.tap(find.text('Clear bought'));
     await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Clear items'));
+    await tester.pumpAndSettle();
     expect(find.text('Your list is empty'), findsOneWidget);
     expect(mutations, [
       'PATCH /items/milk',

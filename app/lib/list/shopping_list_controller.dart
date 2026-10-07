@@ -25,6 +25,8 @@ class ShoppingListController extends ChangeNotifier {
       .toList(growable: false);
   bool get hasBoughtItems => items.any((item) => item.isBought);
   bool get hasPendingDeletes => _pendingDeleteIds.isNotEmpty;
+  int get unboughtCount => items.where((item) => !item.isBought).length;
+  int get boughtCount => items.where((item) => item.isBought).length;
 
   Future<void> load() async {
     final version = ++_loadVersion;
