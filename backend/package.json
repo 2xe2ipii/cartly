@@ -5,7 +5,8 @@
   "type": "commonjs",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/main.js"
+    "start": "node dist/main.js",
+    "test": "npm run build && node --test dist/*/*.test.js"
   },
   "engines": {
     "node": ">=20.19.0"
