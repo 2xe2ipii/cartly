@@ -29,6 +29,7 @@ class _AddItemSheetState extends State<AddItemSheet> {
   Future<void> _save() async {
     if (_saving || !_formKey.currentState!.validate()) return;
 
+    FocusScope.of(context).unfocus();
     setState(() {
       _saving = true;
       _serverError = null;
@@ -38,17 +39,22 @@ class _AddItemSheetState extends State<AddItemSheet> {
         _nameController.text.trim(),
         int.parse(_quantityController.text.trim()),
       );
-      if (mounted) Navigator.of(context).pop();
+      if (!mounted) return;
+      Navigator.of(context).pop();
     } on CartlyApiException catch (error) {
-      if (mounted) setState(() => _serverError = error.message);
+      if (mounted) {
+        setState(() {
+          _serverError = error.message;
+          _saving = false;
+        });
+      }
     } catch (_) {
       if (mounted) {
-        setState(
-          () => _serverError = 'Something went wrong. Please try again.',
-        );
+        setState(() {
+          _serverError = 'Something went wrong. Please try again.';
+          _saving = false;
+        });
       }
-    } finally {
-      if (mounted) setState(() => _saving = false);
     }
   }
 

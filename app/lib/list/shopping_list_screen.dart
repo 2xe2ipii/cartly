@@ -59,13 +59,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) => Scaffold(
-        appBar: AppBar(
-          title: const Text('My list'),
-          actions: [
-            IconButton(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My list'),
+        actions: [
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) => IconButton(
               tooltip: 'Refresh list',
               onPressed:
                   _controller.status == ShoppingListStatus.loading ||
@@ -74,17 +74,23 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   : () => _controller.load(),
               icon: const Icon(Icons.refresh),
             ),
-          ],
-        ),
-        body: SafeArea(
-          child: Column(
+          ),
+        ],
+      ),
+      body: SafeArea(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) => Column(
             children: [
               if (_controller.isMutating) const LinearProgressIndicator(),
               Expanded(child: _buildBody(context)),
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
+      ),
+      floatingActionButton: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) => FloatingActionButton.extended(
           onPressed:
               _controller.status == ShoppingListStatus.loading ||
                   _controller.isMutating
