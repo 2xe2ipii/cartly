@@ -1,0 +1,66 @@
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { FieldValue, type Firestore } from 'firebase-admin/firestore';
+
+import { FIRESTORE } from '../firestore/firestore.module';
+
+export interface Item {
+  id: string;
+  name: string;
+  quantity: number;
+  isBought: boolean;
+}
+
+@Injectable()
+export class ItemsService {
+  constructor(@Inject(FIRESTORE) private readonly firestore: Firestore) {}
+
+  async list(userId: string): Promise<{ items: Item[] }> {
+    const snapshot = await this.itemsFor(userId)
+      .orderBy('isBought', 'asc')
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    return {
+      items: snapshot.docs.map((doc) => ({
+        id: doc.id,
+        name: doc.get('name') as string,
+        quantity: doc.get('quantity') as number,
+        isBought: doc.get('isBought') as boolean,
+      })),
+    };
+  }
+
+  async create(userId: string, body: unknown): Promise<{ id: string }> {
+    const input = body && typeof body === 'object' && !Array.isArray(body)
+      ? (body as Record<string, unknown>)
+      : {};
+    const name = typeof input.name === 'string' ? input.name.trim() : '';
+
+    if (!name) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Name is required.',
+      });
+    }
+    if (typeof input.quantity !== 'number' ||
+        !Number.isInteger(input.quantity) || input.quantity < 1) {
+      throw new BadRequestException({
+        code: 'VALIDATION_ERROR',
+        message: 'Quantity must be an integer of at least 1.',
+      });
+    }
+
+    const ref = this.itemsFor(userId).doc();
+    await ref.create({
+      name,
+      quantity: input.quantity,
+      isBought: false,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return { id: ref.id };
+  }
+
+  private itemsFor(userId: string) {
+    return this.firestore.collection('users').doc(userId).collection('items');
+  }
+}

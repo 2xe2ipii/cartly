@@ -4,9 +4,11 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 
 import { AppModule } from './app.module';
+import { ApiExceptionFilter } from './common/api-exception.filter';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
+  app.useGlobalFilters(new ApiExceptionFilter());
   const config = app.get(ConfigService);
   const port = Number(config.get<string>('PORT') ?? '3000');
 

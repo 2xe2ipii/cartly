@@ -4,7 +4,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { join } from 'node:path';
 
 import { UserIdGuard } from './common/user-id.guard';
-import { FirestoreModule } from './firestore/firestore.module';
+import { ItemsModule } from './items/items.module';
 
 @Module({
   imports: [
@@ -12,7 +12,7 @@ import { FirestoreModule } from './firestore/firestore.module';
       isGlobal: true,
       envFilePath: join(__dirname, '..', '.env'),
     }),
-    FirestoreModule,
+    ItemsModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: UserIdGuard }],
 })
