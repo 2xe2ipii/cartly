@@ -8,13 +8,12 @@ function makeService(boughtCount: number) {
   const state = {
     userIds: [] as string[],
     filters: [] as Array<[string, string, boolean]>,
-    batches: [] as Array<Array<{ id: string; updateTime: object }>>,
+    batches: [] as Array<Array<{ id: string }>>,
     commits: 0,
   };
   const docs = Array.from({ length: boughtCount }, (_, index) => {
     const id = `bought-${index}`;
-    const updateTime = { seconds: index };
-    return { ref: { id }, updateTime };
+    return { ref: { id } };
   });
   const firestore = {
     collection: (name: string) => {
@@ -37,11 +36,11 @@ function makeService(boughtCount: number) {
       };
     },
     batch: () => {
-      const deletes: Array<{ id: string; updateTime: object }> = [];
+      const deletes: Array<{ id: string }> = [];
       state.batches.push(deletes);
       return {
-        delete: (ref: { id: string }, precondition: { lastUpdateTime: object }) => {
-          deletes.push({ id: ref.id, updateTime: precondition.lastUpdateTime });
+        delete: (ref: { id: string }) => {
+          deletes.push({ id: ref.id });
         },
         commit: async () => { state.commits += 1; },
       };
@@ -69,10 +68,6 @@ test('clear bought deletes only queried items in bounded batches', async () => {
   assert.deepEqual(state.filters, [['isBought', '==', true]]);
   assert.deepEqual(state.batches.map((batch) => batch.length), [400, 1]);
   assert.equal(state.commits, 2);
-  assert.deepEqual(state.batches[0][0], {
-    id: 'bought-0', updateTime: { seconds: 0 },
-  });
-  assert.deepEqual(state.batches[1][0], {
-    id: 'bought-400', updateTime: { seconds: 400 },
-  });
+  assert.deepEqual(state.batches[0][0], { id: 'bought-0' });
+  assert.deepEqual(state.batches[1][0], { id: 'bought-400' });
 });

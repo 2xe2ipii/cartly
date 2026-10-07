@@ -101,8 +101,7 @@ export class ItemsService {
     for (let start = 0; start < snapshot.docs.length; start += batchSize) {
       const batch = this.firestore.batch();
       for (const doc of snapshot.docs.slice(start, start + batchSize)) {
-        // Do not delete an item that was marked unbought after the query.
-        batch.delete(doc.ref, { lastUpdateTime: doc.updateTime });
+        batch.delete(doc.ref);
       }
       await batch.commit();
     }
