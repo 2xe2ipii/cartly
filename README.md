@@ -4,16 +4,16 @@ A simple shopping list app: one user, one list. The mobile app will use Flutter,
 
 ## Project status
 
-The architecture and index are documented in `DESIGN.md`. The NestJS backend now has list and add-item routes; the remaining item actions and mobile app are not built.
+The architecture and index are documented in `DESIGN.md`. All five NestJS item routes are implemented. The mobile app is pending, and the configured Firebase project still needs the composite index before its ordered list route can work.
 
 | User story | Status |
 | --- | --- |
-| US-1: See my list | Partly done: backend route; live index and mobile screen pending |
-| US-2: Add an item | Partly done: backend route; mobile form pending |
-| US-3: Mark bought or unbought | Not started |
-| US-4: Delete an item | Not started |
-| US-5: Clear bought items | Not started |
-| US-6: Only see my own items | Partly done: list/add routes require a user ID and use its path |
+| US-1: See my list | Partly done: backend route and emulator ordering verified; live index and mobile screen pending |
+| US-2: Add an item | Partly done: backend route verified; mobile form pending |
+| US-3: Mark bought or unbought | Partly done: backend route verified; mobile toggle and reorder pending |
+| US-4: Delete an item | Partly done: backend route verified; mobile action pending |
+| US-5: Clear bought items | Partly done: backend route verified; mobile action pending; literal one-database-round-trip criterion remains unmet |
+| US-6: Only see my own items | Partly done: every backend route is scoped to the supplied user ID; mobile header integration pending |
 
 ## Environment
 
@@ -30,7 +30,7 @@ npm run build
 npm run start
 ```
 
-The server listens on `PORT` from `backend/.env` (3000 by default). Every item request needs an `X-User-Id` header containing 1–128 letters, numbers, underscores, or hyphens. `GET /items` and `POST /items` are available; the other item routes are pending.
+The server listens on `PORT` from `backend/.env` (3000 by default). Every item request needs an `X-User-Id` header containing 1–128 letters, numbers, underscores, or hyphens. The API provides `GET /items`, `POST /items`, `PATCH /items/:id`, `DELETE /items/:id`, and `DELETE /items/bought`. Run `npm test` in `backend/` for the focused service and guard tests.
 
 Before an ordered list query can work in a new Firebase project, create the `items` collection-scope composite index defined in `firestore.indexes.json` (`isBought` ascending, `createdAt` descending). You can create it in the Firebase console or, after signing in with Firebase CLI, run this from the repository root:
 
@@ -38,4 +38,4 @@ Before an ordered list query can work in a new Firebase project, create the `ite
 firebase deploy --only firestore:indexes --project your-firebase-project-id
 ```
 
-The configured development project currently reports that this index is missing. No live Firestore write has been tested.
+The configured development project currently reports that this index is missing. Its service account can read and write item data but cannot create indexes. An account with index-management permission must create the index in the Firebase console or run the CLI command above. Until the index is ready, live `GET /items` returns a server error; the other routes passed an isolated live-project smoke test, and list ordering passed against the local Firestore emulator.

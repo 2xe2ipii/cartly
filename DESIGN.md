@@ -38,7 +38,7 @@ All routes reject a missing or invalid path-segment user ID with `400`. Paths us
 
 ## Choices and costs
 
-1. **Clear bought:** Query this user's `isBought == true` documents, then delete their references in one batch for a small list; larger lists need more batches. An empty result needs no write, and unbought items are untouched. This is one app request but at least two database calls (read, commit), so **US-5's literal one-round-trip condition is unmet**. Evaluated 1-round-trip alternatives were rejected for Phase 1:
+1. **Clear bought:** Query this user's `isBought == true` documents, then delete their references in one batch for a small list; larger lists need more batches. Each delete checks the document's query-time update timestamp, so a later change to unbought makes that batch fail instead of deleting the changed item. An empty result needs no write, and unbought items are untouched. This is one app request but at least two database calls (read, commit), so **US-5's literal one-round-trip condition is unmet**. Evaluated 1-round-trip alternatives were rejected for Phase 1:
    - *Async Cloud Function / Task Queue:* Achieves near-zero HTTP latency (~10ms) via `202 Accepted`, but introduces Pub/Sub queue infrastructure, eventual consistency, and over-engineering for Phase 1 list scales.
    - *Single Document Array (`users/{userId}`):* Achieves a true 1-round-trip `UPDATE`, but causes write-concurrency conflicts on multi-device edits and risks hitting Firestore's 1MB document size limit.
    - *Soft Delete + TTL:* Google background TTL cleans up expired docs, but explicit bulk deletion on demand still requires querying document IDs first (2 DB calls), while passive auto-expiration violates US-5's explicit "Clear Bought" user requirement.
