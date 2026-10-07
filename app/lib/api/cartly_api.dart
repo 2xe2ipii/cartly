@@ -53,20 +53,74 @@ class CartlyApi {
   final http.Client _client;
 
   Future<List<ShoppingItem>> fetchItems() async {
+    final response = await _send(
+      () => _client.get(baseUrl.resolve('/items'), headers: _headers),
+    );
+    _expectStatus(response, 200);
+
     try {
-      final response = await _client
-          .get(baseUrl.resolve('/items'), headers: {'X-User-Id': userId})
-          .timeout(const Duration(seconds: 10));
-
-      if (response.statusCode != 200) {
-        throw _responseError(response);
-      }
-
       final body = jsonDecode(response.body);
       if (body is! Map<String, dynamic> || body['items'] is! List) {
         throw const FormatException('Invalid list response');
       }
       return (body['items'] as List).map(ShoppingItem.fromJson).toList();
+    } on FormatException {
+      throw const CartlyApiException(
+        'BAD_RESPONSE',
+        'The API returned an unexpected response.',
+      );
+    }
+  }
+
+  Future<void> addItem({required String name, required int quantity}) async {
+    final response = await _send(
+      () => _client.post(
+        baseUrl.resolve('/items'),
+        headers: _jsonHeaders,
+        body: jsonEncode({'name': name.trim(), 'quantity': quantity}),
+      ),
+    );
+    _expectStatus(response, 201);
+  }
+
+  Future<void> setBought(String id, bool isBought) async {
+    final response = await _send(
+      () => _client.patch(
+        _itemUri(id),
+        headers: _jsonHeaders,
+        body: jsonEncode({'isBought': isBought}),
+      ),
+    );
+    _expectStatus(response, 204);
+  }
+
+  Future<void> deleteItem(String id) async {
+    final response = await _send(
+      () => _client.delete(_itemUri(id), headers: _headers),
+    );
+    _expectStatus(response, 204);
+  }
+
+  Future<void> clearBought() async {
+    final response = await _send(
+      () => _client.delete(baseUrl.resolve('/items/bought'), headers: _headers),
+    );
+    _expectStatus(response, 204);
+  }
+
+  Map<String, String> get _headers => {'X-User-Id': userId};
+
+  Map<String, String> get _jsonHeaders => {
+    ..._headers,
+    'Content-Type': 'application/json',
+  };
+
+  Uri _itemUri(String id) =>
+      baseUrl.resolve('/items/${Uri.encodeComponent(id)}');
+
+  Future<http.Response> _send(Future<http.Response> Function() request) async {
+    try {
+      return await request().timeout(const Duration(seconds: 10));
     } on TimeoutException {
       throw const CartlyApiException(
         'TIMEOUT',
@@ -77,12 +131,18 @@ class CartlyApi {
         'NETWORK_ERROR',
         'Could not reach the API. Check that the backend is running.',
       );
-    } on FormatException {
+    }
+  }
+
+  void _expectStatus(http.Response response, int expected) {
+    if (response.statusCode == expected) return;
+    if (response.statusCode >= 200 && response.statusCode < 300) {
       throw const CartlyApiException(
         'BAD_RESPONSE',
         'The API returned an unexpected response.',
       );
     }
+    throw _responseError(response);
   }
 
   CartlyApiException _responseError(http.Response response) {

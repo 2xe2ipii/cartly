@@ -12,7 +12,10 @@ class ShoppingListController extends ChangeNotifier {
   ShoppingListStatus status = ShoppingListStatus.loading;
   List<ShoppingItem> items = const [];
   String? errorMessage;
+  bool isMutating = false;
   bool _disposed = false;
+
+  bool get hasBoughtItems => items.any((item) => item.isBought);
 
   Future<void> load() async {
     status = ShoppingListStatus.loading;
@@ -36,6 +39,38 @@ class ShoppingListController extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  Future<void> addItem(String name, int quantity) =>
+      _mutate(() => api.addItem(name: name, quantity: quantity));
+
+  Future<void> toggleBought(ShoppingItem item) =>
+      _mutate(() => api.setBought(item.id, !item.isBought));
+
+  Future<void> deleteItem(ShoppingItem item) =>
+      _mutate(() => api.deleteItem(item.id));
+
+  Future<void> clearBought() => _mutate(api.clearBought);
+
+  Future<void> _mutate(Future<void> Function() request) async {
+    if (isMutating) {
+      throw const CartlyApiException(
+        'BUSY',
+        'Please wait for the current change.',
+      );
+    }
+
+    isMutating = true;
+    notifyListeners();
+    try {
+      await request();
+      if (!_disposed) await load();
+    } finally {
+      if (!_disposed) {
+        isMutating = false;
+        notifyListeners();
+      }
+    }
   }
 
   @override

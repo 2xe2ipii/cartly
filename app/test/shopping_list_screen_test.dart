@@ -40,8 +40,10 @@ void main() {
 
     expect(find.text('Quantity: 2 · To buy'), findsOneWidget);
     expect(find.text('Quantity: 1 · Bought'), findsOneWidget);
-    expect(find.byIcon(Icons.radio_button_unchecked), findsOneWidget);
-    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    final checkboxes = tester
+        .widgetList<Checkbox>(find.byType(Checkbox))
+        .toList();
+    expect(checkboxes.map((checkbox) => checkbox.value), [false, true]);
     expect(
       tester.getTopLeft(find.text('Milk')).dy,
       lessThan(tester.getTopLeft(find.text('Bread')).dy),

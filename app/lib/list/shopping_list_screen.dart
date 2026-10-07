@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api/cartly_api.dart';
+import 'add_item_sheet.dart';
 import 'shopping_list_controller.dart';
 
 class ShoppingListScreen extends StatefulWidget {
@@ -30,6 +31,32 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     super.dispose();
   }
 
+  Future<void> _showAddItem() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => AddItemSheet(onAdd: _controller.addItem),
+    );
+  }
+
+  Future<void> _runAction(Future<void> Function() action) async {
+    try {
+      await action();
+    } on CartlyApiException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+      if (error.code == 'ITEM_NOT_FOUND') await _controller.load();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Something went wrong. Please try again.'),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
@@ -40,14 +67,32 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           actions: [
             IconButton(
               tooltip: 'Refresh list',
-              onPressed: _controller.status == ShoppingListStatus.loading
+              onPressed:
+                  _controller.status == ShoppingListStatus.loading ||
+                      _controller.isMutating
                   ? null
                   : () => _controller.load(),
               icon: const Icon(Icons.refresh),
             ),
           ],
         ),
-        body: SafeArea(child: _buildBody(context)),
+        body: SafeArea(
+          child: Column(
+            children: [
+              if (_controller.isMutating) const LinearProgressIndicator(),
+              Expanded(child: _buildBody(context)),
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed:
+              _controller.status == ShoppingListStatus.loading ||
+                  _controller.isMutating
+              ? null
+              : _showAddItem,
+          icon: const Icon(Icons.add),
+          label: const Text('Add item'),
+        ),
       ),
     );
   }
@@ -84,32 +129,68 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           );
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          itemCount: _controller.items.length,
-          separatorBuilder: (_, _) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final item = _controller.items[index];
-            final bought = item.isBought;
-            return ListTile(
-              leading: Icon(
-                bought ? Icons.check_circle : Icons.radio_button_unchecked,
-                semanticLabel: bought ? 'Bought' : 'Not bought',
-                color: bought ? Theme.of(context).colorScheme.primary : null,
+        return Column(
+          children: [
+            if (_controller.hasBoughtItems)
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: TextButton.icon(
+                    onPressed: _controller.isMutating
+                        ? null
+                        : () => _runAction(_controller.clearBought),
+                    icon: const Icon(Icons.delete_sweep_outlined),
+                    label: const Text('Clear bought'),
+                  ),
+                ),
               ),
-              title: Text(
-                item.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: bought
-                    ? const TextStyle(decoration: TextDecoration.lineThrough)
-                    : null,
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
+                itemCount: _controller.items.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final item = _controller.items[index];
+                  final bought = item.isBought;
+                  return ListTile(
+                    leading: Checkbox(
+                      value: bought,
+                      semanticLabel: bought
+                          ? 'Mark ${item.name} not bought'
+                          : 'Mark ${item.name} bought',
+                      onChanged: _controller.isMutating
+                          ? null
+                          : (_) => _runAction(
+                              () => _controller.toggleBought(item),
+                            ),
+                    ),
+                    title: Text(
+                      item.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: bought
+                          ? const TextStyle(
+                              decoration: TextDecoration.lineThrough,
+                            )
+                          : null,
+                    ),
+                    subtitle: Text(
+                      'Quantity: ${item.quantity} · ${bought ? 'Bought' : 'To buy'}',
+                    ),
+                    trailing: IconButton(
+                      tooltip: 'Delete ${item.name}',
+                      onPressed: _controller.isMutating
+                          ? null
+                          : () =>
+                                _runAction(() => _controller.deleteItem(item)),
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                  );
+                },
               ),
-              subtitle: Text(
-                'Quantity: ${item.quantity} · ${bought ? 'Bought' : 'To buy'}',
-              ),
-            );
-          },
+            ),
+          ],
         );
     }
   }
