@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cartly/api/cartly_api.dart';
@@ -172,6 +173,168 @@ void main() {
     expect(find.text('Item not found.'), findsOneWidget);
     expect(find.text('Your list is empty'), findsOneWidget);
     expect(reads, 2);
+  });
+
+  testWidgets('deletes two items without waiting and reconciles once', (
+    tester,
+  ) async {
+    final milkDelete = Completer<http.Response>();
+    final breadDelete = Completer<http.Response>();
+    var reads = 0;
+    final deletedPaths = <String>[];
+    final client = MockClient((request) {
+      if (request.method == 'GET') {
+        reads++;
+        return Future.value(
+          http.Response(
+            jsonEncode({
+              'items': reads == 1
+                  ? [
+                      _item('milk', 'Milk', false),
+                      _item('bread', 'Bread', false),
+                      _item('eggs', 'Eggs', false),
+                    ]
+                  : [_item('eggs', 'Eggs', false)],
+            }),
+            200,
+          ),
+        );
+      }
+      deletedPaths.add(request.url.path);
+      return request.url.path == '/items/milk'
+          ? milkDelete.future
+          : breadDelete.future;
+    });
+
+    await tester.pumpWidget(CartlyApp(api: _api(client)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete Milk'));
+    await tester.pump();
+    expect(find.text('Milk'), findsNothing);
+    expect(find.text('Bread'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Delete Bread'));
+    await tester.pump();
+    expect(find.text('Bread'), findsNothing);
+    expect(find.text('Eggs'), findsOneWidget);
+    expect(deletedPaths, ['/items/milk', '/items/bread']);
+    expect(reads, 1);
+
+    milkDelete.complete(http.Response('', 204));
+    await tester.pump();
+    expect(find.text('Eggs'), findsOneWidget);
+    expect(reads, 1);
+
+    breadDelete.complete(http.Response('', 204));
+    await tester.pumpAndSettle();
+    expect(find.text('Eggs'), findsOneWidget);
+    expect(find.text('Milk'), findsNothing);
+    expect(find.text('Bread'), findsNothing);
+    expect(reads, 2);
+  });
+
+  testWidgets('restores a failed delete while keeping a successful one gone', (
+    tester,
+  ) async {
+    final milkDelete = Completer<http.Response>();
+    final breadDelete = Completer<http.Response>();
+    var reads = 0;
+    final client = MockClient((request) {
+      if (request.method == 'GET') {
+        reads++;
+        return Future.value(
+          http.Response(
+            jsonEncode({
+              'items': reads == 1
+                  ? [
+                      _item('milk', 'Milk', false),
+                      _item('bread', 'Bread', false),
+                    ]
+                  : [_item('milk', 'Milk', false)],
+            }),
+            200,
+          ),
+        );
+      }
+      return request.url.path == '/items/milk'
+          ? milkDelete.future
+          : breadDelete.future;
+    });
+
+    await tester.pumpWidget(CartlyApp(api: _api(client)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Delete Milk'));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Delete Bread'));
+    await tester.pump();
+    expect(find.text('Milk'), findsNothing);
+    expect(find.text('Bread'), findsNothing);
+
+    breadDelete.complete(http.Response('', 204));
+    await tester.pump();
+    milkDelete.complete(
+      http.Response(
+        jsonEncode({'code': 'REQUEST_ERROR', 'message': 'Delete failed.'}),
+        503,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Milk'), findsOneWidget);
+    expect(find.text('Bread'), findsNothing);
+    expect(find.text('Delete failed.'), findsOneWidget);
+    expect(reads, 2);
+  });
+
+  testWidgets('an older refresh cannot restore a deleted item', (tester) async {
+    final oldRefresh = Completer<http.Response>();
+    var reads = 0;
+    final client = MockClient((request) {
+      if (request.method == 'GET') {
+        reads++;
+        if (reads == 2) return oldRefresh.future;
+        return Future.value(
+          http.Response(
+            jsonEncode({
+              'items': reads == 1
+                  ? [
+                      _item('milk', 'Milk', false),
+                      _item('bread', 'Bread', false),
+                    ]
+                  : [_item('bread', 'Bread', false)],
+            }),
+            200,
+          ),
+        );
+      }
+      return Future.value(http.Response('', 204));
+    });
+
+    await tester.pumpWidget(CartlyApp(api: _api(client)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Refresh list'));
+    await tester.pump();
+    expect(find.text('Milk'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Delete Milk'));
+    await tester.pumpAndSettle();
+    expect(find.text('Milk'), findsNothing);
+    expect(find.text('Bread'), findsOneWidget);
+    expect(reads, 3);
+
+    oldRefresh.complete(
+      http.Response(
+        jsonEncode({
+          'items': [
+            _item('milk', 'Milk', false),
+            _item('bread', 'Bread', false),
+          ],
+        }),
+        200,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Milk'), findsNothing);
+    expect(find.text('Bread'), findsOneWidget);
   });
 }
 

@@ -83,4 +83,58 @@ void main() {
     expect(find.text('Your list is empty'), findsOneWidget);
     expect(calls, 2);
   });
+
+  testWidgets('keeps loaded items visible during refresh and after a failure', (
+    tester,
+  ) async {
+    final refresh = Completer<http.Response>();
+    var reads = 0;
+    final client = MockClient((_) {
+      reads++;
+      if (reads == 2) return refresh.future;
+      return Future.value(
+        http.Response(
+          jsonEncode({
+            'items': [
+              {'id': 'milk', 'name': 'Milk', 'quantity': 2, 'isBought': false},
+            ],
+          }),
+          200,
+        ),
+      );
+    });
+
+    await tester.pumpWidget(
+      CartlyApp(
+        api: CartlyApi(
+          baseUrl: Uri.parse('http://127.0.0.1:3000'),
+          userId: 'shopper_1',
+          client: client,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Refresh list'));
+    await tester.pump();
+    expect(find.text('Milk'), findsOneWidget);
+    expect(find.text('Loading your list…'), findsNothing);
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+
+    refresh.complete(
+      http.Response(
+        jsonEncode({'code': 'NETWORK_ERROR', 'message': 'Could not refresh.'}),
+        503,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Milk'), findsOneWidget);
+    expect(find.text('Could not refresh.'), findsOneWidget);
+
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    expect(find.text('Milk'), findsOneWidget);
+    expect(find.text('Could not refresh.'), findsNothing);
+    expect(reads, 3);
+  });
 }

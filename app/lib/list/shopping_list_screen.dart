@@ -46,7 +46,6 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text(error.message)));
-      if (error.code == 'ITEM_NOT_FOUND') await _controller.load();
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -69,7 +68,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               tooltip: 'Refresh list',
               onPressed:
                   _controller.status == ShoppingListStatus.loading ||
-                      _controller.isMutating
+                      _controller.isMutating ||
+                      _controller.hasPendingDeletes ||
+                      _controller.isRefreshing
                   ? null
                   : () => _controller.load(),
               icon: const Icon(Icons.refresh),
@@ -82,7 +83,25 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           animation: _controller,
           builder: (context, _) => Column(
             children: [
-              if (_controller.isMutating) const LinearProgressIndicator(),
+              if (_controller.isMutating ||
+                  _controller.isRefreshing ||
+                  _controller.hasPendingDeletes)
+                const LinearProgressIndicator(),
+              if (_controller.status == ShoppingListStatus.ready &&
+                  _controller.errorMessage != null)
+                MaterialBanner(
+                  content: Text(_controller.errorMessage!),
+                  actions: [
+                    TextButton(
+                      onPressed:
+                          _controller.isRefreshing ||
+                              _controller.hasPendingDeletes
+                          ? null
+                          : () => _controller.load(),
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
               Expanded(child: _buildBody(context)),
             ],
           ),
@@ -93,7 +112,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         builder: (context, _) => FloatingActionButton.extended(
           onPressed:
               _controller.status == ShoppingListStatus.loading ||
-                  _controller.isMutating
+                  _controller.isMutating ||
+                  _controller.hasPendingDeletes
               ? null
               : _showAddItem,
           icon: const Icon(Icons.add),
@@ -127,12 +147,19 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           ),
         );
       case ShoppingListStatus.ready:
-        if (_controller.items.isEmpty) {
-          return const _CenteredMessage(
-            icon: Icons.shopping_basket_outlined,
-            title: 'Your list is empty',
-            detail: 'Items you add will appear here.',
-          );
+        final items = _controller.items;
+        if (items.isEmpty) {
+          return _controller.hasPendingDeletes
+              ? const _CenteredMessage(
+                  icon: Icons.delete_outline,
+                  title: 'Deleting items…',
+                  detail: 'Your list will update shortly.',
+                )
+              : const _CenteredMessage(
+                  icon: Icons.shopping_basket_outlined,
+                  title: 'Your list is empty',
+                  detail: 'Items you add will appear here.',
+                );
         }
 
         return Column(
@@ -143,7 +170,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 child: Padding(
                   padding: const EdgeInsets.only(right: 16),
                   child: TextButton.icon(
-                    onPressed: _controller.isMutating
+                    onPressed:
+                        _controller.isMutating || _controller.hasPendingDeletes
                         ? null
                         : () => _runAction(_controller.clearBought),
                     icon: const Icon(Icons.delete_sweep_outlined),
@@ -154,18 +182,21 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
             Expanded(
               child: ListView.separated(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
-                itemCount: _controller.items.length,
+                itemCount: items.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (context, index) {
-                  final item = _controller.items[index];
+                  final item = items[index];
                   final bought = item.isBought;
                   return ListTile(
+                    key: ValueKey(item.id),
                     leading: Checkbox(
                       value: bought,
                       semanticLabel: bought
                           ? 'Mark ${item.name} not bought'
                           : 'Mark ${item.name} bought',
-                      onChanged: _controller.isMutating
+                      onChanged:
+                          _controller.isMutating ||
+                              _controller.hasPendingDeletes
                           ? null
                           : (_) => _runAction(
                               () => _controller.toggleBought(item),

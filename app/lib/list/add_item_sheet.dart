@@ -83,9 +83,7 @@ class _AddItemSheetState extends State<AddItemSheet> {
                   autofocus: true,
                   enabled: !_saving,
                   maxLength: 100,
-                  inputFormatters: [
-                    LengthLimitingTextInputFormatter(100),
-                  ],
+                  inputFormatters: [LengthLimitingTextInputFormatter(100)],
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
                     labelText: 'Name',
@@ -93,8 +91,12 @@ class _AddItemSheetState extends State<AddItemSheet> {
                   ),
                   validator: (value) {
                     final trimmed = value?.trim() ?? '';
-                    if (trimmed.isEmpty) return 'Name is required.';
-                    if (trimmed.length > 100) return 'Name must be 100 characters or less.';
+                    if (trimmed.isEmpty) {
+                      return 'Name is required.';
+                    }
+                    if (trimmed.length > 100) {
+                      return 'Name must be 100 characters or less.';
+                    }
                     return null;
                   },
                   onChanged: (_) => _clearServerError(),
