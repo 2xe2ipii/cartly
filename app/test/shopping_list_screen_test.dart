@@ -38,8 +38,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Quantity: 2'), findsOneWidget);
-    expect(find.text('Quantity: 1'), findsOneWidget);
+    expect(find.text('×2'), findsOneWidget);
+    expect(find.text('×1'), findsOneWidget);
     expect(find.byTooltip('Put Milk in cart'), findsOneWidget);
     expect(find.byTooltip('Take Bread out of cart'), findsOneWidget);
     expect(

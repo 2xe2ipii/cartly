@@ -292,59 +292,47 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               ? null
               : () => _runAction(() => _controller.toggleBought(item)),
         ),
-        title: Text(
-          item.name,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: bought
-              ? TextStyle(
-                  decoration: TextDecoration.lineThrough,
-                  color: Theme.of(context).colorScheme.outline,
-                )
-              : const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
-                decoration: BoxDecoration(
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                item.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: bought
+                    ? TextStyle(
+                        decoration: TextDecoration.lineThrough,
+                        color: Theme.of(context).colorScheme.outline,
+                      )
+                    : const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                color: bought
+                    ? Theme.of(context).colorScheme.surfaceContainerHigh.withOpacity(0.5)
+                    : Theme.of(context).colorScheme.primaryContainer.withOpacity(0.6),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
                   color: bought
-                      ? Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerHigh.withOpacity(0.6)
-                      : Theme.of(
-                          context,
-                        ).colorScheme.primaryContainer.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: bought
-                        ? Theme.of(
-                            context,
-                          ).colorScheme.outlineVariant.withOpacity(0.3)
-                        : Theme.of(
-                            context,
-                          ).colorScheme.primary.withOpacity(0.2),
-                  ),
-                ),
-                child: Text(
-                  'Quantity: ${item.quantity}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: bought
-                        ? Theme.of(context).colorScheme.outline
-                        : Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
+                      ? Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3)
+                      : Theme.of(context).colorScheme.primary.withOpacity(0.25),
                 ),
               ),
-            ],
-          ),
+              child: Text(
+                '×${item.quantity}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: bought
+                      ? Theme.of(context).colorScheme.outline
+                      : Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+              ),
+            ),
+          ],
         ),
         trailing: IconButton(
           tooltip: 'Delete ${item.name}',
