@@ -238,33 +238,33 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 
         return Column(
           children: [
-            if (_controller.hasBoughtItems)
-              Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: TextButton.icon(
-                    onPressed:
-                        _controller.isMutating || _controller.hasPendingDeletes
-                        ? null
-                        : _confirmClearBought,
-                    icon: const Icon(Icons.delete_sweep_outlined),
-                    label: const Text('Clear bought'),
-                  ),
-                ),
-              ),
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
                 children: [
                   if (unboughtItems.isNotEmpty) ...[
-                    _SectionHeader(title: '🛒 To Buy', count: unboughtItems.length),
+                    _SectionHeader(
+                      title: '🛒 To Buy',
+                      count: unboughtItems.length,
+                    ),
                     const SizedBox(height: 8),
                     ...unboughtItems.map((item) => _buildItemTile(context, item)),
                     const SizedBox(height: 16),
                   ],
                   if (boughtItems.isNotEmpty) ...[
-                    _SectionHeader(title: '✔️ In Your Cart', count: boughtItems.length),
+                    _SectionHeader(
+                      title: '✔️ In Your Cart',
+                      count: boughtItems.length,
+                      trailing: TextButton.icon(
+                        onPressed:
+                            _controller.isMutating ||
+                                _controller.hasPendingDeletes
+                            ? null
+                            : _confirmClearBought,
+                        icon: const Icon(Icons.delete_sweep_outlined),
+                        label: const Text('Clear bought'),
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     ...boughtItems.map((item) => _buildItemTile(context, item)),
                   ],
@@ -333,10 +333,15 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title, required this.count});
+  const _SectionHeader({
+    required this.title,
+    required this.count,
+    this.trailing,
+  });
 
   final String title;
   final int count;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -366,6 +371,10 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
         ),
+        if (trailing != null) ...[
+          const Spacer(),
+          trailing!,
+        ],
       ],
     );
   }
