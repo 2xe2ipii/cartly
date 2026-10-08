@@ -43,9 +43,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear bought items?'),
+        title: const Text('Empty cart?'),
         content: Text(
-          'Are you sure you want to remove $count bought item${count == 1 ? '' : 's'} from your list?',
+          'Are you sure you want to remove $count item${count == 1 ? '' : 's'} from your cart?',
         ),
         actions: [
           TextButton(
@@ -58,7 +58,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Clear items'),
+            child: const Text('Empty cart'),
           ),
         ],
       ),
@@ -261,8 +261,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                                 _controller.hasPendingDeletes
                             ? null
                             : _confirmClearBought,
-                        icon: const Icon(Icons.delete_sweep_outlined),
-                        label: const Text('Clear bought'),
+                        icon: const Icon(Icons.remove_shopping_cart_outlined),
+                        label: const Text('Empty cart'),
                       ),
                     ),
                     const SizedBox(height: 8),

@@ -27,7 +27,7 @@ class CartlyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Cartly',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
       ),
       home: ShoppingListScreen(api: api),
     );

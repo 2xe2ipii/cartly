@@ -134,9 +134,9 @@ void main() {
     expect(find.text('Bread'), findsNothing);
     expect(find.text('Milk'), findsOneWidget);
 
-    await tester.tap(find.text('Clear bought'));
+    await tester.tap(find.text('Empty cart'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Clear items'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Empty cart'));
     await tester.pumpAndSettle();
     expect(find.text('Your list is empty'), findsOneWidget);
     expect(mutations, [
