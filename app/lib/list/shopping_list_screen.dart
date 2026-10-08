@@ -280,7 +280,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               ? 'Take ${item.name} out of cart'
               : 'Put ${item.name} in cart',
           icon: Icon(
-            bought ? Icons.shopping_cart : Icons.add_shopping_cart_outlined,
+            bought
+                ? Icons.check_box_rounded
+                : Icons.check_box_outline_blank_rounded,
             color: bought
                 ? Theme.of(context).colorScheme.primary
                 : Theme.of(context).colorScheme.onSurfaceVariant,
@@ -302,7 +304,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               : const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
         subtitle: Text(
-          'Quantity: ${item.quantity} · ${bought ? 'Bought' : 'To buy'}',
+          'Quantity: ${item.quantity}',
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),

@@ -80,7 +80,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(AddItemSheet), findsNothing);
       expect(find.text('Milk'), findsOneWidget);
-      expect(find.text('Quantity: 2 · To buy'), findsOneWidget);
+      expect(find.text('Quantity: 2'), findsOneWidget);
       expect(posts, 2);
     },
   );
@@ -119,11 +119,11 @@ void main() {
       tester.getTopLeft(find.text('Bread')).dy,
       lessThan(tester.getTopLeft(find.text('Milk')).dy),
     );
-    expect(find.text('Quantity: 1 · Bought'), findsNWidgets(2));
+    expect(find.text('Quantity: 1'), findsNWidgets(2));
 
     await tester.tap(find.byTooltip('Take Bread out of cart'));
     await tester.pumpAndSettle();
-    expect(find.text('Quantity: 1 · To buy'), findsOneWidget);
+    expect(find.text('Quantity: 1'), findsNWidgets(2));
     expect(
       tester.getTopLeft(find.text('Bread')).dy,
       lessThan(tester.getTopLeft(find.text('Milk')).dy),
