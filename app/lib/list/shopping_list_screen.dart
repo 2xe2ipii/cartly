@@ -303,10 +303,47 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 )
               : const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
-        subtitle: Text(
-          'Quantity: ${item.quantity}',
-          style: TextStyle(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: bought
+                      ? Theme.of(
+                          context,
+                        ).colorScheme.surfaceContainerHigh.withOpacity(0.6)
+                      : Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: bought
+                        ? Theme.of(
+                            context,
+                          ).colorScheme.outlineVariant.withOpacity(0.3)
+                        : Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.2),
+                  ),
+                ),
+                child: Text(
+                  'Quantity: ${item.quantity}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: bought
+                        ? Theme.of(context).colorScheme.outline
+                        : Theme.of(context).colorScheme.onPrimaryContainer,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         trailing: IconButton(
