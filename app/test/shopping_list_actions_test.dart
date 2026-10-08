@@ -113,7 +113,7 @@ void main() {
 
     await tester.pumpWidget(CartlyApp(api: _api(client)));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(Checkbox).first);
+    await tester.tap(find.byTooltip('Put Milk in cart'));
     await tester.pumpAndSettle();
     expect(
       tester.getTopLeft(find.text('Bread')).dy,
@@ -121,7 +121,7 @@ void main() {
     );
     expect(find.text('Quantity: 1 · Bought'), findsNWidgets(2));
 
-    await tester.tap(find.byType(Checkbox).first);
+    await tester.tap(find.byTooltip('Take Bread out of cart'));
     await tester.pumpAndSettle();
     expect(find.text('Quantity: 1 · To buy'), findsOneWidget);
     expect(
@@ -170,7 +170,7 @@ void main() {
 
     await tester.pumpWidget(CartlyApp(api: _api(client)));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(Checkbox));
+    await tester.tap(find.byTooltip('Put Milk in cart'));
     await tester.pumpAndSettle();
     expect(find.text('Item not found.'), findsOneWidget);
     expect(find.text('Your list is empty'), findsOneWidget);

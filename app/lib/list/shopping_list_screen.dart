@@ -233,6 +233,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 );
         }
 
+        final unboughtItems = items.where((i) => !i.isBought).toList();
+        final boughtItems = items.where((i) => i.isBought).toList();
+
         return Column(
           children: [
             if (_controller.hasBoughtItems)
@@ -251,57 +254,120 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 ),
               ),
             Expanded(
-              child: ListView.separated(
+              child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
-                itemCount: items.length,
-                separatorBuilder: (_, _) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final item = items[index];
-                  final bought = item.isBought;
-                  return ListTile(
-                    key: ValueKey(item.id),
-                    leading: Checkbox(
-                      value: bought,
-                      semanticLabel: bought
-                          ? 'Mark ${item.name} not bought'
-                          : 'Mark ${item.name} bought',
-                      onChanged:
-                          _controller.isMutating ||
-                              _controller.hasPendingDeletes
-                          ? null
-                          : (_) => _runAction(
-                              () => _controller.toggleBought(item),
-                            ),
-                    ),
-                    title: Text(
-                      item.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: bought
-                          ? TextStyle(
-                              decoration: TextDecoration.lineThrough,
-                              color: Theme.of(context).colorScheme.outline,
-                            )
-                          : null,
-                    ),
-                    subtitle: Text(
-                      'Quantity: ${item.quantity} · ${bought ? 'Bought' : 'To buy'}',
-                    ),
-                    trailing: IconButton(
-                      tooltip: 'Delete ${item.name}',
-                      onPressed: _controller.isMutating
-                          ? null
-                          : () =>
-                                _runAction(() => _controller.deleteItem(item)),
-                      icon: const Icon(Icons.delete_outline),
-                    ),
-                  );
-                },
+                children: [
+                  if (unboughtItems.isNotEmpty) ...[
+                    _SectionHeader(title: '🛒 To Buy', count: unboughtItems.length),
+                    const SizedBox(height: 8),
+                    ...unboughtItems.map((item) => _buildItemTile(context, item)),
+                    const SizedBox(height: 16),
+                  ],
+                  if (boughtItems.isNotEmpty) ...[
+                    _SectionHeader(title: '✔️ In Your Cart', count: boughtItems.length),
+                    const SizedBox(height: 8),
+                    ...boughtItems.map((item) => _buildItemTile(context, item)),
+                  ],
+                ],
               ),
             ),
           ],
         );
     }
+  }
+
+  Widget _buildItemTile(BuildContext context, ShoppingItem item) {
+    final bought = item.isBought;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: bought
+            ? Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5)
+            : Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+        ),
+      ),
+      child: ListTile(
+        key: ValueKey(item.id),
+        leading: IconButton(
+          tooltip: bought
+              ? 'Take ${item.name} out of cart'
+              : 'Put ${item.name} in cart',
+          icon: Icon(
+            bought ? Icons.shopping_cart : Icons.add_shopping_cart_outlined,
+            color: bought
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+          onPressed:
+              _controller.isMutating || _controller.hasPendingDeletes
+              ? null
+              : () => _runAction(() => _controller.toggleBought(item)),
+        ),
+        title: Text(
+          item.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: bought
+              ? TextStyle(
+                  decoration: TextDecoration.lineThrough,
+                  color: Theme.of(context).colorScheme.outline,
+                )
+              : const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          'Quantity: ${item.quantity} · ${bought ? 'Bought' : 'To buy'}',
+        ),
+        trailing: IconButton(
+          tooltip: 'Delete ${item.name}',
+          onPressed: _controller.isMutating
+              ? null
+              : () => _runAction(() => _controller.deleteItem(item)),
+          icon: const Icon(Icons.delete_outline),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title, required this.count});
+
+  final String title;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onPrimaryContainer,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 

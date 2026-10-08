@@ -40,10 +40,8 @@ void main() {
 
     expect(find.text('Quantity: 2 · To buy'), findsOneWidget);
     expect(find.text('Quantity: 1 · Bought'), findsOneWidget);
-    final checkboxes = tester
-        .widgetList<Checkbox>(find.byType(Checkbox))
-        .toList();
-    expect(checkboxes.map((checkbox) => checkbox.value), [false, true]);
+    expect(find.byTooltip('Put Milk in cart'), findsOneWidget);
+    expect(find.byTooltip('Take Bread out of cart'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('Milk')).dy,
       lessThan(tester.getTopLeft(find.text('Bread')).dy),
