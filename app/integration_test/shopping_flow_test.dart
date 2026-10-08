@@ -12,7 +12,7 @@ const _apiBaseUrl = String.fromEnvironment(
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('shopping actions work on iOS with the local API', (
+  testWidgets('shopping actions work on a device with the local API', (
     tester,
   ) async {
     final api = CartlyApi(
@@ -33,16 +33,8 @@ void main() {
     await _addItem(tester, 'Bread', '1');
     await _waitFor(tester, find.text('Bread'));
 
-    await tester.tap(
-      find.descendant(
-        of: find.ancestor(
-          of: find.text('Milk'),
-          matching: find.byType(ListTile),
-        ),
-        matching: find.byType(Checkbox),
-      ),
-    );
-    await _waitFor(tester, find.text('Quantity: 2 · Bought'));
+    await tester.tap(find.byTooltip('Put Milk in cart'));
+    await _waitFor(tester, find.byTooltip('Take Milk out of cart'));
     expect(
       tester.getTopLeft(find.text('Bread')).dy,
       lessThan(tester.getTopLeft(find.text('Milk')).dy),
@@ -50,7 +42,9 @@ void main() {
 
     await tester.tap(find.byTooltip('Delete Bread'));
     await _waitFor(tester, find.text('Bread'), present: false);
-    await tester.tap(find.text('Clear bought'));
+    await tester.tap(find.text('Empty cart'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, 'Empty cart'));
     await _waitFor(tester, find.text('Your list is empty'));
   });
 }

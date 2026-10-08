@@ -1,43 +1,90 @@
 # Cartly
 
-A simple shopping list app: one user, one list. The mobile app will use Flutter, the API will use NestJS, and the API will store items in Cloud Firestore. Flutter will call the API and will not connect to Firestore directly.
+Cartly is a shopping list app built with Flutter (frontend), NestJS (backend API), and Cloud Firestore (database). The architecture isolates Firestore behind NestJS using `X-User-Id` header scoping. For complete design decisions, schemas, and trade-off analysis, see [DESIGN.md](DESIGN.md).
 
-## Project status
+## User story status
 
-The architecture and index are documented in `DESIGN.md`. All five NestJS item routes are implemented and verified against the configured Firebase project. The Flutter UI now covers the five list actions; the final manual end-to-end pass is pending.
+| Story | Status | Implementation details |
+| --- | --- | --- |
+| US-1: See my list | Done | Pre-sorted by database (`isBought ASC, createdAt DESC`). Includes loading, empty, and error states. |
+| US-2: Add an item | Done | Validates name and quantity (minimum 1) on both client and backend before writing to Firestore. |
+| US-3: Mark bought or unbought | Done | Item toggle API endpoint updates Firestore and triggers list reordering. |
+| US-4: Delete an item | Done | Deletes single item from list; handles missing item 404 responses gracefully. |
+| US-5: Clear bought items | Partly done | UI confirmation dialog and backend bulk batch delete implemented. The literal single database round-trip acceptance criterion remains unmet (requires query + batch commit in Firestore; see trade-offs in DESIGN.md). |
+| US-6: Only see my own items | Done | All endpoints enforce user path scoping based on the `X-User-Id` header. |
 
-| User story | Status |
-| --- | --- |
-| US-1: See my list | Partly done: backend ordering and Flutter loading, empty, error, and list states verified; final manual pass pending |
-| US-2: Add an item | Partly done: backend route and Flutter form with validation implemented; final manual pass pending |
-| US-3: Mark bought or unbought | Partly done: backend route and Flutter toggle with list reload implemented; final manual pass pending |
-| US-4: Delete an item | Partly done: backend route and Flutter delete action implemented; final manual pass pending |
-| US-5: Clear bought items | Partly done: backend route and Flutter action implemented; literal one-database-round-trip criterion remains unmet |
-| US-6: Only see my own items | Partly done: every backend route uses the supplied user ID and Flutter sends its header; final two-user pass pending |
+## Setup & Local Execution
 
-## Environment
+### Prerequisites
+- **Node.js**: v20.19+
+- **Flutter**: v3.29+
+- **Firebase Project**: Cloud Firestore database enabled
 
-Each developer needs their own Firebase project and service-account JSON key outside this repository. Copy `backend/.env.example` to `backend/.env`, then set the absolute key path and project ID. The local `.env` and JSON key must not be committed.
-
-To start the backend on a clean machine, install Node.js 20.19 or later, then run:
+### 1. Backend Configuration
+Install dependencies and copy environment variables in `backend/`:
 
 ```sh
 cd backend
 npm ci
 cp .env.example .env
-# Edit .env with your Firebase project ID and the absolute key path.
-npm run build
-npm run start
 ```
 
-The server listens on `PORT` from `backend/.env` (3000 by default). Every item request needs an `X-User-Id` header containing 1–128 letters, numbers, underscores, or hyphens. The API provides `GET /items`, `POST /items`, `PATCH /items/:id`, `DELETE /items/:id`, and `DELETE /items/bought`. Run `npm test` in `backend/` for the focused service and guard tests.
+Configure `backend/.env` with your project parameters:
+```dotenv
+GOOGLE_CLOUD_PROJECT=your-firebase-project-id
+GOOGLE_APPLICATION_CREDENTIALS=/absolute/path/to/service-account.json
+PORT=3000
+```
 
-Before an ordered list query can work in a new Firebase project, create the `items` collection-scope composite index defined in `firestore.indexes.json` (`isBought` ascending, `createdAt` descending). You can create it in the Firebase console or, after signing in with Firebase CLI, run this from the repository root:
+### 2. Firestore Composite Index Setup
+Deploy the composite index defined in `firestore.indexes.json` (`isBought ASC, createdAt DESC`) via Firebase CLI:
 
 ```sh
 firebase deploy --only firestore:indexes --project your-firebase-project-id
 ```
 
-The configured development project has this index in `READY` state. The live `GET /items` route and the other item routes passed an isolated API smoke test; temporary test documents were removed. For a new project, wait until Firestore reports the index as ready before testing the ordered list route.
+*Note: Alternatively, create the composite index directly in the Firebase Console.*
 
-For Flutter and iOS Simulator startup steps, see [IOS_SIM_GUIDE.md](IOS_SIM_GUIDE.md).
+### 3. Start & Verify Backend API
+Build and launch the API server:
+
+```sh
+cd backend
+npm run build
+npm run start
+```
+The server runs on `http://127.0.0.1:3000`.
+
+To verify API connectivity:
+```sh
+curl -i -H 'X-User-Id: demo_user' http://127.0.0.1:3000/items
+```
+
+### 4. Run the Flutter App
+
+#### iOS Simulator (macOS)
+```sh
+cd app
+flutter pub get
+flutter run -d booted --dart-define=API_BASE_URL=http://127.0.0.1:3000 --dart-define=USER_ID=demo_user
+```
+
+#### Android Emulator
+```sh
+cd app
+flutter pub get
+flutter run -d <device-id> --dart-define=API_BASE_URL=http://10.0.2.2:3000 --dart-define=USER_ID=demo_user
+```
+
+#### Windows Desktop
+```sh
+cd app
+flutter pub get
+flutter run -d windows --dart-define=API_BASE_URL=http://127.0.0.1:3000 --dart-define=USER_ID=demo_user
+```
+
+## Testing
+
+- **Backend Unit & Integration Tests**: Run `npm test` inside `backend/`.
+- **Flutter Unit & Widget Tests**: Run `flutter test` inside `app/`.
+- **Flutter End-to-End Integration Test**: Run `flutter test integration_test/shopping_flow_test.dart -d booted --dart-define=API_BASE_URL=http://127.0.0.1:3000` inside `app/` (requires running API and booted simulator).

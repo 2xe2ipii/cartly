@@ -1,47 +1,50 @@
 # Cartly design
 
-**Phase 1 design complete; US-5's one-database-round-trip criterion remains unmet.**
-
 ## Request flow
 
 ```text
-Tap → Flutter widget → list controller → API client → NestJS validation/service → Firestore
-Screen ← controller ← API client ← HTTP response ← NestJS ← Firestore result
+Tap → Flutter widget → list controller → API client → NestJS route/service → Firestore
+Screen ← widget state ← controller ← HTTP response ← NestJS ← Firestore result
 ```
 
-Flutter calls only NestJS; widgets do not issue HTTP. NestJS validates input and scopes Firestore paths to the required `X-User-Id` header.
+When a user taps an action in the app, the Flutter UI delegates the request to the list controller and API client layer. The mobile app never talks to Cloud Firestore directly and never places raw `http` calls inside widget trees. Instead, NestJS handles every request, reads the `X-User-Id` header to scope Firestore document paths, validates the incoming payload, and communicates with Firestore using the Firebase Admin SDK.
 
 ## Firestore model
 
-Each item is a document at `users/{userId}/items/{itemId}` with a generated ID. No separate list document is needed.
+Each item is stored as an individual document inside the subcollection `users/{userId}/items/{itemId}` with an auto-generated document ID. Storing each item as its own document allows us to perform fine-grained updates without locking or reading the entire list.
 
-| Field | Type | Rule |
+| Field | Type | Purpose |
 | --- | --- | --- |
-| `name` | string | Trimmed and nonempty |
-| `quantity` | integer | At least 1 |
-| `isBought` | boolean | Initially `false` |
-| `createdAt` | timestamp | Server timestamp at creation; unchanged by toggles |
+| `name` | string | Trimmed item name |
+| `quantity` | integer | Number of items to buy (at least 1) |
+| `isBought` | boolean | Toggled when an item is marked bought or put back |
+| `createdAt` | timestamp | Server timestamp recorded at item creation |
 
-One document per item permits targeted changes. Firestore orders the list by `isBought ASC, createdAt DESC` using the collection-scope index in `firestore.indexes.json`; Dart keeps that order. Ties use Firestore's implicit `__name__ DESC` order. [Index ordering](https://firebase.google.com/docs/firestore/query-data/index-overview)
+To satisfy the sorting requirement where unbought items come first and newest items appear on top, I created a composite index on `isBought ASC, createdAt DESC` in `firestore.indexes.json`. Because Firestore handles the sort on the database layer, the API returns pre-sorted data directly to the Dart controller without requiring client-side reordering.
 
-## API contract
+## API endpoints
 
-| Endpoint | Input → Firestore action → success | Stories |
+| Route | Result | Stories |
 | --- | --- | --- |
-| `GET /items` | Ordered query → `200 {"items":[...]}` | US-1, US-6 |
-| `POST /items` | `{"name":"Milk","quantity":2}` → create unbought item → `201 {"id":"..."}` | US-2, US-6 |
-| `PATCH /items/:id` | `{"isBought":true}` or `false` → update item → `204` | US-3, US-6 |
-| `DELETE /items/:id` | Delete item → `204` | US-4, US-6 |
-| `DELETE /items/bought` | Delete bought items → `204`, also when empty | US-5, US-6 |
+| `GET /items` | Returns sorted list of items with status `200` | US-1, US-6 |
+| `POST /items` | Validates input, creates new unbought item, returns `201` | US-2, US-6 |
+| `PATCH /items/:id` | Updates item `isBought` status, returns `204` or `404` | US-3, US-6 |
+| `DELETE /items/:id` | Deletes a single item, returns `204` or `404` | US-4, US-6 |
+| `DELETE /items/bought` | Clears all bought items for the user, returns `204` | US-5, US-6 |
 
-All routes reject a missing or invalid path-segment user ID with `400`. Paths use that ID, so another user's item ID yields `404`. Invalid inputs get `400` before any write; missing items get `404`, and database failures get 5xx. Errors contain readable `{ "code": "...", "message": "..." }`, which Flutter displays. List items include only `id`, `name`, `quantity`, and `isBought`. Flutter shows loading, empty, and error/retry states, then reloads the database-ordered list after changes.
+Validation happens on NestJS before writing to Firestore. Every endpoint enforces user path scoping using `X-User-Id`, so requests attempting to access another user's items return a clean `404` error with readable error details.
 
-## Choices and costs
+## Choices and trade-offs
 
-1. **Clear bought:** Query this user's `isBought == true` documents, then delete their references in one batch for a small list; larger lists need more batches. An empty result needs no write, and unbought items are untouched. This is one app request but at least two database calls (read, commit), so **US-5's literal one-round-trip condition is unmet**. Evaluated 1-round-trip alternatives were rejected for Phase 1:
-   - *Async Cloud Function / Task Queue:* Achieves near-zero HTTP latency (~10ms) via `202 Accepted`, but introduces Pub/Sub queue infrastructure, eventual consistency, and over-engineering for Phase 1 list scales.
-   - *Single Document Array (`users/{userId}`):* Achieves a true 1-round-trip `UPDATE`, but causes write-concurrency conflicts on multi-device edits and risks hitting Firestore's 1MB document size limit.
-   - *Soft Delete + TTL:* Google background TTL cleans up expired docs, but explicit bulk deletion on demand still requires querying document IDs first (2 DB calls), while passive auto-expiration violates US-5's explicit "Clear Bought" user requirement.
-   - *Relational SQL Database:* `DELETE FROM items WHERE ...` runs in 1 database statement, but forfeits Firestore's real-time SDK listeners and offline sync.
-   [Deletion guidance](https://firebase.google.com/docs/firestore/manage-data/delete-data) · [Batched writes](https://firebase.google.com/docs/firestore/manage-data/transactions)
-2. **Trusted header:** Backend path scoping cannot prove who supplied `X-User-Id`; a caller can impersonate a known ID. Login is outside scope. The server SDK bypasses Firestore Security Rules, so NestJS enforces this boundary on every route. [Server SDK security](https://firebase.google.com/docs/firestore/security/rules-conditions)
+### 1. Document-per-item vs. Single-document array (The US-5 round-trip trade-off)
+The brief asks for clearing all bought items in a single database round trip. In Firestore, deleting multiple documents requires a query step to collect the matching document IDs followed by a batch commit, which takes two database round trips behind the NestJS service.
+
+I evaluated a few ways to achieve a literal single database round trip:
+* **Single Document Array (`users/{userId}`):** Storing all items inside a single array in one document would allow a single atomic `UPDATE` call. However, this introduces high risk of write concurrency conflicts when a user edits from multiple devices, and it caps the shopping list size at Firestore's 1MB document limit.
+* **Async Background Queue / Cloud Tasks:** Triggering an async worker returns an HTTP `202` quickly, but introduces Pub/Sub queues and eventual consistency overhead that over-engineers a simple mobile app.
+* **Relational SQL Database:** Using Postgres or MySQL would let us run `DELETE FROM items WHERE user_id = ? AND is_bought = true` in a single SQL statement, but we would lose Firestore's serverless scaling and simple document model.
+
+I chose the document-per-item approach with a read-then-batch-delete pattern. It keeps item mutations simple, prevents document size caps, and allows Firestore's native index to handle sorting smoothly, even though it costs two internal database calls for bulk clearing.
+
+### 2. Trusted user ID header over full authentication
+Rather than adding login and session management, the API relies on the `X-User-Id` HTTP header to scope database paths. NestJS validates the header format on every request before touching Firestore. Full authentication and OAuth are explicitly left out of scope per project guidelines to keep the app focused and simple.

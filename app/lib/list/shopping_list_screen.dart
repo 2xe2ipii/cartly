@@ -38,6 +38,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
       builder: (_) => AddItemSheet(onAdd: _controller.addItem),
     );
   }
+
   Future<void> _confirmClearBought() async {
     final count = _controller.boughtCount;
     final confirmed = await showDialog<bool>(
@@ -101,7 +102,8 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(
-            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.4),
+            color: Theme.of(context).colorScheme.outlineVariant
+                .withValues(alpha: 0.4),
             height: 1,
           ),
         ),
@@ -221,7 +223,9 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                       count: unboughtItems.length,
                     ),
                     const SizedBox(height: 8),
-                    ...unboughtItems.map((item) => _buildItemTile(context, item)),
+                    ...unboughtItems.map(
+                      (item) => _buildItemTile(context, item),
+                    ),
                     const SizedBox(height: 16),
                   ],
                   if (boughtItems.isNotEmpty) ...[
@@ -260,14 +264,16 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: bought
-              ? Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3)
-              : Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6),
+              ? Theme.of(context).colorScheme.outlineVariant
+                    .withValues(alpha: 0.3)
+              : Theme.of(context).colorScheme.outlineVariant
+                    .withValues(alpha: 0.6),
         ),
         boxShadow: bought
             ? []
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 ),
@@ -287,8 +293,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 ? Theme.of(context).colorScheme.primary
                 : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
-          onPressed:
-              _controller.isMutating || _controller.hasPendingDeletes
+          onPressed: _controller.isMutating || _controller.hasPendingDeletes
               ? null
               : () => _runAction(() => _controller.toggleBought(item)),
         ),
@@ -304,7 +309,10 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                         decoration: TextDecoration.lineThrough,
                         color: Theme.of(context).colorScheme.outline,
                       )
-                    : const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                    : const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
               ),
             ),
             const SizedBox(width: 8),
@@ -312,13 +320,17 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
               decoration: BoxDecoration(
                 color: bought
-                    ? Theme.of(context).colorScheme.surfaceContainerHigh.withOpacity(0.5)
-                    : Theme.of(context).colorScheme.primaryContainer.withOpacity(0.6),
+                    ? Theme.of(context).colorScheme.surfaceContainerHigh
+                          .withValues(alpha: 0.5)
+                    : Theme.of(context).colorScheme.primaryContainer
+                          .withValues(alpha: 0.6),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
                   color: bought
-                      ? Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3)
-                      : Theme.of(context).colorScheme.primary.withOpacity(0.25),
+                      ? Theme.of(context).colorScheme.outlineVariant
+                            .withValues(alpha: 0.3)
+                      : Theme.of(context).colorScheme.primary
+                            .withValues(alpha: 0.25),
                 ),
               ),
               child: Text(
@@ -385,10 +397,7 @@ class _SectionHeader extends StatelessWidget {
             ),
           ),
         ),
-        if (trailing != null) ...[
-          const Spacer(),
-          trailing!,
-        ],
+        if (trailing != null) ...[const Spacer(), trailing!],
       ],
     );
   }
