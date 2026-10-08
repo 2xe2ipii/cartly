@@ -106,44 +106,18 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
           ),
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                final isDisabled =
-                    _controller.status == ShoppingListStatus.loading ||
-                    _controller.isMutating ||
-                    _controller.hasPendingDeletes ||
-                    _controller.isRefreshing;
-                return Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withOpacity(0.5),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: IconButton(
-                    tooltip: 'Refresh list',
-                    onPressed: isDisabled ? null : () => _controller.load(),
-                    icon: const Icon(Icons.refresh),
-                    color: Theme.of(context).colorScheme.primary,
-                    disabledColor: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.3),
-                  ),
-                );
-              },
+          AnimatedBuilder(
+            animation: _controller,
+            builder: (context, _) => IconButton(
+              tooltip: 'Refresh list',
+              onPressed:
+                  _controller.status == ShoppingListStatus.loading ||
+                      _controller.isMutating ||
+                      _controller.hasPendingDeletes ||
+                      _controller.isRefreshing
+                  ? null
+                  : () => _controller.load(),
+              icon: const Icon(Icons.refresh),
             ),
           ),
         ],
