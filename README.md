@@ -4,16 +4,16 @@ A simple shopping list app: one user, one list. The mobile app will use Flutter,
 
 ## Project status
 
-The architecture and index are documented in `DESIGN.md`. All five NestJS item routes are implemented and verified against the configured Firebase project. The mobile app is pending.
+The architecture and index are documented in `DESIGN.md`. All five NestJS item routes are implemented and verified against the configured Firebase project. The Flutter UI now covers the five list actions; the final manual end-to-end pass is pending.
 
 | User story | Status |
 | --- | --- |
-| US-1: See my list | Partly done: backend route and live database ordering verified; mobile screen pending |
-| US-2: Add an item | Partly done: backend route verified; mobile form pending |
-| US-3: Mark bought or unbought | Partly done: backend route verified; mobile toggle and reorder pending |
-| US-4: Delete an item | Partly done: backend route verified; mobile action pending |
-| US-5: Clear bought items | Partly done: backend route verified; mobile action pending; literal one-database-round-trip criterion remains unmet |
-| US-6: Only see my own items | Partly done: every backend route is scoped to the supplied user ID; mobile header integration pending |
+| US-1: See my list | Partly done: backend ordering and Flutter loading, empty, error, and list states verified; final manual pass pending |
+| US-2: Add an item | Partly done: backend route and Flutter form with validation implemented; final manual pass pending |
+| US-3: Mark bought or unbought | Partly done: backend route and Flutter toggle with list reload implemented; final manual pass pending |
+| US-4: Delete an item | Partly done: backend route and Flutter delete action implemented; final manual pass pending |
+| US-5: Clear bought items | Partly done: backend route and Flutter action implemented; literal one-database-round-trip criterion remains unmet |
+| US-6: Only see my own items | Partly done: every backend route uses the supplied user ID and Flutter sends its header; final two-user pass pending |
 
 ## Environment
 
@@ -39,3 +39,5 @@ firebase deploy --only firestore:indexes --project your-firebase-project-id
 ```
 
 The configured development project has this index in `READY` state. The live `GET /items` route and the other item routes passed an isolated API smoke test; temporary test documents were removed. For a new project, wait until Firestore reports the index as ready before testing the ordered list route.
+
+For Flutter and iOS Simulator startup steps, see [IOS_SIM_GUIDE.md](IOS_SIM_GUIDE.md).

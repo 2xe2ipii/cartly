@@ -90,61 +90,60 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.shopping_bag_outlined,
-                size: 20,
-                color: Theme.of(context).colorScheme.onPrimaryContainer,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Cartly',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, _) {
-                    if (_controller.status != ShoppingListStatus.ready) {
-                      return const SizedBox.shrink();
-                    }
-                    final unbought = _controller.unboughtCount;
-                    return Text(
-                      unbought == 0
-                          ? 'All items in cart!'
-                          : '$unbought item${unbought == 1 ? '' : 's'} to buy',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    );
-                  },
-                ),
-              ],
-            ),
-          ],
+        title: const Text(
+          'Cartly',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 22,
+            letterSpacing: -0.5,
+          ),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.4),
+            height: 1,
+          ),
         ),
         actions: [
-          AnimatedBuilder(
-            animation: _controller,
-            builder: (context, _) => IconButton(
-              tooltip: 'Refresh list',
-              onPressed:
-                  _controller.status == ShoppingListStatus.loading ||
-                      _controller.isMutating ||
-                      _controller.hasPendingDeletes ||
-                      _controller.isRefreshing
-                  ? null
-                  : () => _controller.load(),
-              icon: const Icon(Icons.refresh),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, _) {
+                final isDisabled =
+                    _controller.status == ShoppingListStatus.loading ||
+                    _controller.isMutating ||
+                    _controller.hasPendingDeletes ||
+                    _controller.isRefreshing;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withOpacity(0.5),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.04),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: IconButton(
+                    tooltip: 'Refresh list',
+                    onPressed: isDisabled ? null : () => _controller.load(),
+                    icon: const Icon(Icons.refresh),
+                    color: Theme.of(context).colorScheme.primary,
+                    disabledColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.3),
+                  ),
+                );
+              },
             ),
           ),
         ],
@@ -244,7 +243,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                 children: [
                   if (unboughtItems.isNotEmpty) ...[
                     _SectionHeader(
-                      title: '🛒 To Buy',
+                      title: 'To Buy',
                       count: unboughtItems.length,
                     ),
                     const SizedBox(height: 8),
@@ -253,7 +252,7 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   ],
                   if (boughtItems.isNotEmpty) ...[
                     _SectionHeader(
-                      title: '✔️ In Your Cart',
+                      title: 'In Your Cart',
                       count: boughtItems.length,
                       trailing: TextButton.icon(
                         onPressed:
@@ -279,15 +278,26 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
   Widget _buildItemTile(BuildContext context, ShoppingItem item) {
     final bought = item.isBought;
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: bought
-            ? Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5)
+            ? Theme.of(context).colorScheme.surfaceContainerLowest
             : Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+          color: bought
+              ? Theme.of(context).colorScheme.outlineVariant.withOpacity(0.3)
+              : Theme.of(context).colorScheme.outlineVariant.withOpacity(0.6),
         ),
+        boxShadow: bought
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
       ),
       child: ListTile(
         key: ValueKey(item.id),
@@ -315,10 +325,13 @@ class _ShoppingListScreenState extends State<ShoppingListScreen> {
                   decoration: TextDecoration.lineThrough,
                   color: Theme.of(context).colorScheme.outline,
                 )
-              : const TextStyle(fontWeight: FontWeight.w600),
+              : const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
         subtitle: Text(
           'Quantity: ${item.quantity} · ${bought ? 'Bought' : 'To buy'}',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
         ),
         trailing: IconButton(
           tooltip: 'Delete ${item.name}',
